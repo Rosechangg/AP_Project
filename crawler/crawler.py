@@ -197,25 +197,31 @@ def _fetch_images_(browser):
 def _fetch_images_v2_(browser):
     css_selector = "._97aPb img"
     img_urls = set()
-    while True:
-        # Get image elements
-        elements = None
-        try:
-            WebDriverWait(browser, timeout = 30).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, css_selector))
-            )
-            elements = browser.find_elements(By.CSS_SELECTOR, css_selector)
-        except TimeoutException:
-            print("...Timeout while finding images")
+    
+    # Wait for image loading
+    elements = None
+    try:
+        WebDriverWait(browser, timeout = 30).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, css_selector))
+        )
+    except TimeoutException:
+        print("...Timeout while finding images")
 
-        # Fetch sources
-        if isinstance(elements, list):
-            elements = browser.find_elements(By.CSS_SELECTOR, css_selector) # this is a duplicated line but for handling a stale element exception
-            for ele_img in elements:
-                if ele_img.aria_role == 'img':
+    # Fetch sources
+    wait_count = 0
+    while True:
+        try:
+            elements = browser.find_elements(By.CSS_SELECTOR, css_selector)
+            if isinstance(elements, list):
+                for ele_img in elements:
                     img_urls.add(ele_img.get_attribute("src"))
-        else:
-            break
+        except:
+            # Wait for Image Loading
+            if wait_count >= 5:
+                continue
+            traceback.print_exc()
+            wait_count += 1
+            time.sleep(5)
 
         # Move to next images
         btn_css_selector = "._6CZji .coreSpriteRightChevron"
@@ -313,7 +319,7 @@ def download(url, user_agent = 'wswp', n_retries = 2, charset = 'utf-8'):
 #                 break
 
 def main():
-    keyword = "성심당"
+    keyword = "한밭수목원"
 
     browser = create_browser()
     instagram_login(browser)
